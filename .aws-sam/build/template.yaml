@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM Demo Template for CodePipeline
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: python3.13
+    Environment:
+      Variables:
+        TABLE_NAME:
+          Ref: DemoTable
+Resources:
+  DemoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: DemoFunction
+      Handler: app.lambda_handler
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: DemoTable
+      Events:
+        GetApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: DemoApi
+            Path: /items
+            Method: get
+        PostApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: DemoApi
+            Path: /items
+            Method: post
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: Canary10Percent5Minutes
+    Metadata:
+      SamResourceId: DemoFunction
+  DemoApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Auth:
+        ApiKeyRequired: true
+      Cors:
+        AllowMethods: '''GET,POST,OPTIONS'''
+        AllowHeaders: '''content-type'''
+        AllowOrigin: '''*'''
+  DemoTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+  ApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: DemoApiKey
+      Enabled: true
+  UsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn: DemoApiProdStage
+    Properties:
+      UsagePlanName: DemoUsagePlan
+      ApiStages:
+      - ApiId:
+          Ref: DemoApi
+        Stage: Prod
+  UsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId:
+        Ref: ApiKey
+      KeyType: API_KEY
+      UsagePlanId:
+        Ref: UsagePlan
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value:
+      Fn::Sub: https://${DemoApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/
+  FunctionName:
+    Description: Lambda Function Name
+    Value:
+      Ref: DemoFunction
+  TableName:
+    Description: DynamoDB Table Name
+    Value:
+      Ref: DemoTable
+  ApiKey:
+    Description: API Key for accessing the API
+    Value:
+      Ref: ApiKey

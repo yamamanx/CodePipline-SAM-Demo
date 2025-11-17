@@ -1,0 +1,22 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.13
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - pip install aws-sam-cli
+  build:
+    commands:
+      - echo Build started on `date`
+      - sam build
+      - sam package --s3-bucket $BUCKET_NAME --output-template-file packaged-template.yaml
+  post_build:
+    commands:
+      - echo Build completed on `date`
+
+artifacts:
+  files:
+    - packaged-template.yaml
