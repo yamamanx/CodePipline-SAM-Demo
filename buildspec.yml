@@ -12,7 +12,7 @@ phases:
     commands:
       - echo Build started on `date`
       - sam build
-      - sam package --s3-bucket $BUCKET_NAME --output-template-file packaged-template.yaml
+      - sam package --s3-bucket $SAM_ARTIFACTS_BUCKET --output-template-file packaged-template.yaml
   post_build:
     commands:
       - echo Build completed on `date`
